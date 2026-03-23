@@ -7,3 +7,5 @@ __pycache__/
 EOF
 Untitled*.ipynb
 .ipynb_checkpoints/
+*.svg
+*.html
