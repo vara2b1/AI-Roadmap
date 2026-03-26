@@ -1,0 +1,65 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ibm-licensing-catalog
+  namespace: openshift-marketplace
+spec:
+  displayName: IBM License Service Catalog
+  publisher: IBM
+  sourceType: grpc
+  image: icr.io/cpopen/ibm-licensing-catalog
+  updateStrategy:
+    registryPoll:
+      interval: 45m
+
+
+
+apiVersion: operator.ibm.com/v1
+kind: NamespaceScope
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  csvInjector:
+    enable: true
+  configmapName: namespace-scope
+  namespaceMembers:
+    - ibm-common-services
+    - ftm-ns-1
+    # add other namespaces here
+    - ftm-ns-n
+  restartLabels:
+    intent: projected
+
+
+ wget https://raw.githubusercontent.com/IBM/ibm-namespace-scope-operator/master/scripts/authorize-namespace.sh         
+
+
+oc apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: ibm-ftm-operator-api
+spec:
+  channel: v4.4
+  installPlanApproval: Manual
+  name: ibm-ftm-operator-api
+  source: ibm-operator-catalog
+  sourceNamespace: openshift-marketplace
+EOF
+
+
+oc patch installplan <install-plan-name>  -p '{"spec":{"approved":true}}' --type merge
+
+oc patch subscription ibm-mq --patch '{"spec": {"channel":"v3.5"}}' --type=merge
+
+oc patch installplan <install-plan-name>  -p '{"spec":{"approved":true}}' --type merge
+
+oc patch ftm ftm-inst -p '{"spec":{"config":{"mq":{"create":{"version": "9.4.2.0-r1"}}}}}' --type=merge
+
+oc patch ftm ftm-inst -p '{"spec":{"config":{"mq":{"create":{"use": "NonProduction"}}}}}' --type=merge
+
+oc patch ftm ftm-inst -p '{"spec":{"config":{"mq":{"create":{"license": "L-QWBN-T3PKLE"}}}}}' --type=merge
+
+oc patch ftm ftm-inst -p '{"spec":{"version": "4.0.6.0_iFix5"}}' --type merge
+
